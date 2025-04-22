@@ -16,7 +16,29 @@
         .sub-table{
             animation: transitionIn-Y-bottom 0.5s;
         }
-</style>
+        .doctor-card {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .rating {
+            color: #FFD700;
+            font-size: 20px;
+        }
+        .review-section {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f9f9f9;
+        }
+        .review {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+        }
+        .review:last-child {
+            border-bottom: none;
+        }
+    </style>
 </head>
 <body>
     <?php
@@ -43,6 +65,9 @@
     $userfetch=$userrow->fetch_assoc();
     $userid= $userfetch["pid"];
     $username=$userfetch["pname"];
+
+    $sqlmain = "select * from doctor where 1";
+    $result = $database->query($sqlmain);
 
     ?>
     <div class="container">

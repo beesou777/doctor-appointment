@@ -215,18 +215,43 @@
                                     $docemail=$row["docemail"];
                                     $scheduledate=$row["scheduledate"];
                                     $scheduletime=$row["scheduletime"];
-                                    $sql2="select * from appointment where scheduleid=$id";
-                                    //echo $sql2;
-                                     $result12= $database->query($sql2);
-                                     $apponum=($result12->num_rows)+1;
                                     
-                                    echo '
-                                        <form action="booking-complete.php" method="post">
-                                            <input type="hidden" name="scheduleid" value="'.$scheduleid.'" >
-                                            <input type="hidden" name="date" value="'.$today.'" >
-
+                                    // Check if patient already has an appointment with this doctor
+                                    $check_query = "SELECT a.appoid FROM appointment a 
+                                                   JOIN schedule s ON a.scheduleid = s.scheduleid 
+                                                   WHERE a.pid = $userid AND s.docid = {$row['docid']} 
+                                                   AND s.scheduledate >= '$today'";
+                                    $check_result = $database->query($check_query);
+                                    
+                                    if($check_result->num_rows > 0) {
+                                        // Patient already has an appointment with this doctor
+                                        echo '
+                                        <td colspan="2">
+                                            <div class="dashboard-items search-items" style="padding: 20px; text-align: center;">
+                                                <div style="width:100%">
+                                                    <div class="h1-search" style="font-size:25px; color: #dc3545;">
+                                                        Already Booked
+                                                    </div><br><br>
+                                                    <div class="h3-search" style="font-size:18px;line-height:30px">
+                                                        You already have an appointment with Dr. <b>'.$docname.'</b><br>
+                                                        Please book a different doctor or wait until your current appointment is completed.
+                                                    </div>
+                                                    <br>
+                                                    <a href="schedule.php"><button class="login-btn btn-primary-soft btn" style="padding-left: 25px;padding-right: 25px;padding-top: 10px;padding-bottom: 10px;">Back to Schedule</button></a>
+                                                </div>
+                                            </div>
+                                        </td>';
+                                    } else {
+                                        // Patient can book this appointment
+                                        $sql2="select * from appointment where scheduleid=$id";
+                                        $result12= $database->query($sql2);
+                                        $apponum=($result12->num_rows)+1;
                                         
-                                    ';
+                                        echo '
+                                            <form action="booking-complete.php" method="post">
+                                                <input type="hidden" name="scheduleid" value="'.$scheduleid.'" >
+                                                <input type="hidden" name="date" value="'.$today.'" >
+                                        ';
                                      
 
                                     echo '
@@ -288,14 +313,8 @@
                                         </tr>
                                         '; 
                                         
-
-
-
-
+                                    }
                                 }
-
-
-
                             }
                             
                             ?>

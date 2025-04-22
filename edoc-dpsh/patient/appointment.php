@@ -270,7 +270,7 @@
                                                                     '.substr($title,0,21).'<br>
                                                                 </div>
                                                                 <div class="h3-search">
-                                                                    Appointment Number:<div class="h1-search">0'.$apponum.'</div>
+                                                                    Appointment Number:<div class="h1-search">'.str_pad($apponum, 3, '0', STR_PAD_LEFT).'</div>
                                                                 </div>
                                                                 <div class="h3-search">
                                                                     '.substr($docname,0,30).'

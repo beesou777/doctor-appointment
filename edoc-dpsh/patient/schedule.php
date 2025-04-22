@@ -24,6 +24,12 @@ $username = $userfetch["pname"];
 date_default_timezone_set('Asia/Kolkata');
 $today = date('Y-m-d');
 
+// Check for error message
+$error_message = "";
+if(isset($_GET['error']) && $_GET['error'] == 'already-booked') {
+    $error_message = "You already have an appointment with this doctor. Please book a different doctor or date.";
+}
+
 // Handle search logic
 $searchtype = "All";
 $insertkey = "";
@@ -97,6 +103,14 @@ foreach ($sessions as $session) {
         .sub-table {
             animation: transitionIn-Y-bottom 0.5s;
         }
+        .error-message {
+            background-color: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            margin: 10px 45px;
+            border-radius: 4px;
+            border: 1px solid #ef9a9a;
+        }
     </style>
 </head>
 <body>
@@ -153,6 +167,12 @@ foreach ($sessions as $session) {
         </div>
 
         <div class="dash-body">
+            <?php if($error_message != ""): ?>
+                <div class="error-message">
+                    <?php echo $error_message; ?>
+                </div>
+            <?php endif; ?>
+            
             <table border="0" width="100%" style="border-spacing: 0; margin:0; padding:0; margin-top:25px;">
                 <tr>
                     <td width="13%">
