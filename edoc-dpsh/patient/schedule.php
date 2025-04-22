@@ -210,18 +210,41 @@ foreach ($sessions as $session) {
                                                   </tr>';
                                         } else {
                                             foreach ($filtered_sessions as $session) {
+                                                // Check if the session is fully booked
+                                                $session_id = $session['scheduleid'];
+                                                $max_patients = $session['nop'];
+                                                
+                                                // Count current bookings for this session
+                                                $booking_count_sql = "SELECT COUNT(*) as count FROM appointment WHERE scheduleid = $session_id";
+                                                $booking_count_result = $database->query($booking_count_sql);
+                                                $booking_count = $booking_count_result->fetch_assoc()['count'];
+                                                
+                                                // Determine if the session is fully booked
+                                                $is_fully_booked = ($booking_count >= $max_patients);
+                                                
+                                                // Format the time for display
+                                                $time_display = date('h:i A', strtotime($session['scheduletime']));
+                                                
                                                 echo '<tr>
                                                         <td style="width: 25%;">
                                                         <div class="dashboard-items search-items">
                                                             <div style="width:100%">
                                                                 <div class="h1-search">' . substr($session['title'], 0, 21) . '</div><br>
                                                                 <div class="h3-search">' . substr($session['docname'], 0, 30) . '</div>
-                                                                <div class="h4-search">' . $session['scheduledate'] . '<br>Starts: <b>@' . substr($session['scheduletime'], 0, 5) . '</b> (24h)</div>
-                                                                <br>
-                                                                <a href="booking.php?id=' . $session['scheduleid'] . '">
+                                                                <div class="h4-search">' . $session['scheduledate'] . '<br>Starts: <b>@' . $time_display . '</b></div>
+                                                                <div class="h4-search">Bookings: <b>' . $booking_count . '/' . $max_patients . '</b></div>
+                                                                <br>';
+                                                
+                                                if ($is_fully_booked) {
+                                                    echo '<button class="login-btn btn-primary-soft btn" style="padding-top:11px;padding-bottom:11px;width:100%;background-color:#f0f0f0;color:#999;" disabled>
+                                                                <font class="tn-in-text">Fully Booked</font></button>';
+                                                } else {
+                                                    echo '<a href="booking.php?id=' . $session['scheduleid'] . '">
                                                                 <button class="login-btn btn-primary-soft btn" style="padding-top:11px;padding-bottom:11px;width:100%">
-                                                                <font class="tn-in-text">Book Now</font></button></a>
-                                                            </div>
+                                                                <font class="tn-in-text">Book Now</font></button></a>';
+                                                }
+                                                
+                                                echo '</div>
                                                         </div>
                                                         </td>
                                                     </tr>';

@@ -26,15 +26,19 @@
 
     if($_POST){
         if(isset($_POST["booknow"])){
-            $apponum=$_POST["apponum"];
             $scheduleid=$_POST["scheduleid"];
             $date=$_POST["date"];
-            $scheduleid=$_POST["scheduleid"];
-            $sql2="insert into appointment(pid,apponum,scheduleid,appodate) values ($userid,$apponum,$scheduleid,'$date')";
+            
+            // Get the next appointment number by finding the maximum apponum and adding 1
+            $result = $database->query("SELECT MAX(apponum) as max_apponum FROM appointment");
+            $row = $result->fetch_assoc();
+            $next_apponum = ($row['max_apponum'] > 0) ? $row['max_apponum'] + 1 : 1;
+            
+            // Insert the appointment with the next appointment number
+            $sql2="insert into appointment(pid,apponum,scheduleid,appodate) values ($userid,$next_apponum,$scheduleid,'$date')";
             $result= $database->query($sql2);
-            //echo $apponom;
-            header("location: appointment.php?action=booking-added&id=".$apponum."&titleget=none");
-
+            
+            header("location: appointment.php?action=booking-added&id=".$next_apponum."&titleget=none");
         }
     }
  ?>

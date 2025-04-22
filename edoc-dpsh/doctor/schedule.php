@@ -172,6 +172,50 @@
                     
                 </tr>
                 
+                <!-- Add new session form -->
+                <tr>
+                    <td colspan="4" style="padding-top:20px;width: 100%;" >
+                        <center>
+                        <table class="filter-container" border="0" style="width: 80%;">
+                        <tr>
+                            <td colspan="4">
+                                <p class="heading-main12" style="margin-left: 45px;font-size:18px;color:rgb(49, 49, 49)">Add New Session</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td width="20%" style="text-align: center;">
+                                <form action="" method="post">
+                                    <input type="text" name="title" class="input-text filter-container-items" placeholder="Session Title" style="margin: 0;width: 95%;" required>
+                            </td>
+                            <td width="20%" style="text-align: center;">
+                                <input type="date" name="scheduledate" class="input-text filter-container-items" style="margin: 0;width: 95%;" required>
+                            </td>
+                            <td width="20%" style="text-align: center;">
+                                <select name="scheduletime" class="input-text filter-container-items" style="margin: 0;width: 95%;" required>
+                                    <option value="">Select Time</option>
+                                    <option value="10:00:00">10:00 AM</option>
+                                    <option value="11:00:00">11:00 AM</option>
+                                    <option value="12:00:00">12:00 PM</option>
+                                    <option value="13:00:00">1:00 PM</option>
+                                    <option value="14:00:00">2:00 PM</option>
+                                    <option value="15:00:00">3:00 PM</option>
+                                    <option value="16:00:00">4:00 PM</option>
+                                    <option value="17:00:00">5:00 PM</option>
+                                </select>
+                            </td>
+                            <td width="20%" style="text-align: center;">
+                                <input type="number" name="nop" class="input-text filter-container-items" placeholder="Max Patients" style="margin: 0;width: 95%;" min="1" max="50" required>
+                            </td>
+                            <td width="20%" style="text-align: center;">
+                                <input type="submit" name="addsession" value="Add Session" class="btn-primary-soft btn button-icon btn-filter" style="padding: 15px; margin: 0;width:100%">
+                            </form>
+                            </td>
+                        </tr>
+                        </table>
+                        </center>
+                    </td>
+                </tr>
+                
                 <?php
 
                 $sqlmain= "select schedule.scheduleid,schedule.title,doctor.docname,schedule.scheduledate,schedule.scheduletime,schedule.nop from schedule inner join doctor on schedule.docid=doctor.docid where doctor.docid=$userid ";
@@ -182,7 +226,34 @@
                             $sheduledate=$_POST["sheduledate"];
                             $sqlmain.=" and schedule.scheduledate='$sheduledate' ";
                         }
-
+                        
+                        // Handle adding new session
+                        if(isset($_POST["addsession"])){
+                            $title = $_POST["title"];
+                            $scheduledate = $_POST["scheduledate"];
+                            $scheduletime = $_POST["scheduletime"];
+                            $nop = $_POST["nop"];
+                            
+                            // Check if the date is not in the past
+                            if($scheduledate >= $today){
+                                // Check if the time slot is available
+                                $check_sql = "SELECT * FROM schedule WHERE docid=$userid AND scheduledate='$scheduledate' AND scheduletime='$scheduletime'";
+                                $check_result = $database->query($check_sql);
+                                
+                                if($check_result->num_rows == 0){
+                                    // Add the new session
+                                    $add_sql = "INSERT INTO schedule(docid, title, scheduledate, scheduletime, nop) VALUES ($userid, '$title', '$scheduledate', '$scheduletime', $nop)";
+                                    $database->query($add_sql);
+                                    
+                                    // Redirect to refresh the page
+                                    header("location: schedule.php");
+                                } else {
+                                    echo '<script>alert("This time slot is already booked for the selected date.");</script>';
+                                }
+                            } else {
+                                echo '<script>alert("Cannot schedule sessions in the past.");</script>';
+                            }
+                        }
                     }
 
                 ?>
