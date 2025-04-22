@@ -179,125 +179,162 @@ if ($conn->connect_error) {
 }
 
 // Get symptoms from user input
-$user_symptoms = isset($_POST['symptoms']) ? $_POST['symptoms'] : '';
+$user_symptoms = '';
+if (isset($_POST['symptoms'])) {
+    $user_symptoms = $_POST['symptoms'];
+} elseif (isset($_GET['symptoms'])) {
+    $user_symptoms = $_GET['symptoms'];
+}
+
 $symptoms_array = array_map('trim', explode(',', $user_symptoms));
 
-// Match symptoms with diseases using FIND_IN_SET
-$where_clauses = [];
-foreach ($symptoms_array as $symptom) {
-    $where_clauses[] = "FIND_IN_SET('" . $conn->real_escape_string($symptom) . "', symptoms) > 0";
-}
-$sql_where = implode(' OR ', $where_clauses);
-
-// Query to find matching diseases
-$sql = "SELECT * FROM diseases WHERE $sql_where";
-$result = $conn->query($sql);
-
-$matched_diseases = [];
-
-// Fetch matched diseases
-if ($result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-        $matched_diseases[] = $row;
+// Only proceed with the search if symptoms are provided
+if (!empty($user_symptoms)) {
+    // Match symptoms with diseases using FIND_IN_SET
+    $where_clauses = [];
+    foreach ($symptoms_array as $symptom) {
+        $where_clauses[] = "FIND_IN_SET('" . $conn->real_escape_string($symptom) . "', symptoms) > 0";
     }
-}
+    $sql_where = implode(' OR ', $where_clauses);
 
-// Display recommendations
+    // Query to find matching diseases
+    $sql = "SELECT * FROM diseases WHERE $sql_where";
+    $result = $conn->query($sql);
 
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-if (!empty($matched_diseases)) {
-    echo '<div style="background-color: #f0f8ff; border: 1px solid #ccc; border-radius: 8px; padding: 20px; margin: 20px 0; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">';
-    echo '<h2 style="color: #2c3e50; margin-top: 0;">Recommendations</h2>';
-    $item_index = 0; // To alternate colors
-    foreach ($matched_diseases as $disease) {
-        $bg_color = $item_index % 2 == 0 ? '#e6f7ff' : '#f5faff';
-        echo '<div style="background-color: ' . $bg_color . '; padding: 10px; margin-bottom: 10px; border-radius: 5px;">';
-        echo "<strong>Disease:</strong> " . $disease['name'] . "<br>";
-        echo "<strong>Symptoms:</strong> " . $disease['symptoms'] . "<br>";
+    $matched_diseases = [];
 
-        // Query to get recommendations for the matched disease
-        $recommend_sql = "SELECT recommendation FROM recommendations WHERE disease_id=" . $disease['id'];
-        $recommend_result = $conn->query($recommend_sql);
+    // Fetch matched diseases
+    if ($result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $matched_diseases[] = $row;
+        }
+    }
 
-        if ($recommend_result->num_rows > 0) {
-            while ($recommendation = $recommend_result->fetch_assoc()) {
-                echo "<strong>Recommendation:</strong> " . $recommendation['recommendation'] . "<br>";
+    // Display recommendations
+
+    ini_set('display_errors', 1);
+    error_reporting(E_ALL);
+    if (!empty($matched_diseases)) {
+        echo '<div style="background-color: #f0f8ff; border: 1px solid #ccc; border-radius: 8px; padding: 20px; margin: 20px 0; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">';
+        echo '<h2 style="color: #2c3e50; margin-top: 0;">Recommendations</h2>';
+        $item_index = 0; // To alternate colors
+        foreach ($matched_diseases as $disease) {
+            $bg_color = $item_index % 2 == 0 ? '#e6f7ff' : '#f5faff';
+            echo '<div style="background-color: ' . $bg_color . '; padding: 10px; margin-bottom: 10px; border-radius: 5px;">';
+            echo "<strong>Disease:</strong> " . $disease['name'] . "<br>";
+            echo "<strong>Symptoms:</strong> " . $disease['symptoms'] . "<br>";
+
+            // Query to get recommendations for the matched disease
+            $recommend_sql = "SELECT recommendation FROM recommendations WHERE disease_id=" . $disease['id'];
+            $recommend_result = $conn->query($recommend_sql);
+
+            if ($recommend_result->num_rows > 0) {
+                while ($recommendation = $recommend_result->fetch_assoc()) {
+                    echo "<strong>Recommendation:</strong> " . $recommendation['recommendation'] . "<br>";
+                }
+            } else {
+                echo "<strong>Recommendation:</strong> No specific recommendation available.<br>";
             }
-        } else {
-            echo "<strong>Recommendation:</strong> No specific recommendation available.<br>";
+            echo '</div>';
+            $item_index++;
         }
         echo '</div>';
-        $item_index++;
-    }
-    echo '</div>';
 
-    // Get recommended doctors based on the matched diseases
-    echo '<div style="background-color: #f0f8ff; border: 1px solid #ccc; border-radius: 8px; padding: 20px; margin: 20px 0; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">';
-    echo '<h2 style="color: #2c3e50; margin-top: 0;">Recommended Doctors</h2>';
-    
-    // Get specialties that match the diseases
-    $specialty_ids = [];
-    foreach ($matched_diseases as $disease) {
-        if (isset($disease['specialty_id'])) {
-            $specialty_ids[] = $disease['specialty_id'];
-        }
-    }
-    
-    if (!empty($specialty_ids)) {
-        $specialty_ids_str = implode(',', $specialty_ids);
+        // Get recommended doctors based on the matched diseases
+        echo '<div style="background-color: #f0f8ff; border: 1px solid #ccc; border-radius: 8px; padding: 20px; margin: 20px 0; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">';
+        echo '<h2 style="color: #2c3e50; margin-top: 0;">Recommended Doctors</h2>';
         
-        // Query to get doctors with matching specialties
-        $doctor_sql = "SELECT d.*, s.sname as specialty_name 
-                       FROM doctor d 
-                       JOIN specialties s ON d.specialties = s.id 
-                       WHERE d.specialties IN ($specialty_ids_str)";
-        
-        $doctor_result = $database->query($doctor_sql);
-        
-        if ($doctor_result->num_rows > 0) {
-            echo '<div style="display: flex; flex-wrap: wrap; justify-content: space-between;">';
-            while ($doctor = $doctor_result->fetch_assoc()) {
-                echo '<div class="doctor-card" style="width: 48%; margin-bottom: 15px;">';
-                echo '<div class="doctor-name">Dr. ' . $doctor['docname'] . '</div>';
-                echo '<div class="doctor-specialty">Specialty: ' . $doctor['specialty_name'] . '</div>';
-                echo '<div class="doctor-email">Email: ' . $doctor['docemail'] . '</div>';
-                echo '<a href="schedule.php?search=' . urlencode($doctor['docname']) . '" class="book-btn">Book Appointment</a>';
-                echo '</div>';
+        // Get specialties that match the diseases
+        $specialty_ids = [];
+        foreach ($matched_diseases as $disease) {
+            if (isset($disease['specialty_id'])) {
+                $specialty_ids[] = $disease['specialty_id'];
             }
-            echo '</div>';
-        } else {
-            echo '<p style="color: #7f8c8d; font-style: italic;">No specific doctors found for these symptoms. Please check our <a href="doctors.php">complete doctor list</a>.</p>';
         }
-    } else {
-        // If no specialty IDs found, show all doctors
-        $all_doctors_sql = "SELECT d.*, s.sname as specialty_name 
+        
+        if (!empty($specialty_ids)) {
+            $specialty_ids_str = implode(',', $specialty_ids);
+            
+            // Query to get doctors with matching specialties
+            $doctor_sql = "SELECT d.*, s.sname as specialty_name 
                            FROM doctor d 
-                           JOIN specialties s ON d.specialties = s.id";
-        $all_doctors_result = $database->query($all_doctors_sql);
-        
-        if ($all_doctors_result->num_rows > 0) {
-            echo '<p style="color: #7f8c8d; margin-bottom: 15px;">Here are all our available doctors:</p>';
-            echo '<div style="display: flex; flex-wrap: wrap; justify-content: space-between;">';
-            while ($doctor = $all_doctors_result->fetch_assoc()) {
-                echo '<div class="doctor-card" style="width: 48%; margin-bottom: 15px;">';
-                echo '<div class="doctor-name">Dr. ' . $doctor['docname'] . '</div>';
-                echo '<div class="doctor-specialty">Specialty: ' . $doctor['specialty_name'] . '</div>';
-                echo '<div class="doctor-email">Email: ' . $doctor['docemail'] . '</div>';
-                echo '<a href="schedule.php?search=' . urlencode($doctor['docname']) . '" class="book-btn">Book Appointment</a>';
+                           JOIN specialties s ON d.specialties = s.id 
+                           WHERE d.specialties IN ($specialty_ids_str)";
+            
+            $doctor_result = $database->query($doctor_sql);
+            
+            if ($doctor_result->num_rows > 0) {
+                echo '<div style="display: flex; flex-wrap: wrap; justify-content: space-between;">';
+                while ($doctor = $doctor_result->fetch_assoc()) {
+                    echo '<div class="doctor-card" style="width: 48%; margin-bottom: 15px;">';
+                    echo '<div class="doctor-name">Dr. ' . $doctor['docname'] . '</div>';
+                    echo '<div class="doctor-specialty">Specialty: ' . $doctor['specialty_name'] . '</div>';
+                    echo '<div class="doctor-email">Email: ' . $doctor['docemail'] . '</div>';
+                    echo '<a href="schedule.php?search=' . urlencode($doctor['docname']) . '" class="book-btn">Book Appointment</a>';
+                    echo '</div>';
+                }
                 echo '</div>';
+            } else {
+                echo '<p style="color: #7f8c8d; font-style: italic;">No specific doctors found for these symptoms. Please check our <a href="doctors.php">complete doctor list</a>.</p>';
             }
-            echo '</div>';
         } else {
-            echo '<p style="color: #7f8c8d; font-style: italic;">No doctors found in the system.</p>';
+            // If no specialty IDs found, show all doctors
+            $all_doctors_sql = "SELECT d.*, s.sname as specialty_name 
+                               FROM doctor d 
+                               JOIN specialties s ON d.specialties = s.id";
+            $all_doctors_result = $database->query($all_doctors_sql);
+            
+            if ($all_doctors_result->num_rows > 0) {
+                echo '<p style="color: #7f8c8d; margin-bottom: 15px;">Here are all our available doctors:</p>';
+                echo '<div style="display: flex; flex-wrap: wrap; justify-content: space-between;">';
+                while ($doctor = $all_doctors_result->fetch_assoc()) {
+                    echo '<div class="doctor-card" style="width: 48%; margin-bottom: 15px;">';
+                    echo '<div class="doctor-name">Dr. ' . $doctor['docname'] . '</div>';
+                    echo '<div class="doctor-specialty">Specialty: ' . $doctor['specialty_name'] . '</div>';
+                    echo '<div class="doctor-email">Email: ' . $doctor['docemail'] . '</div>';
+                    echo '<a href="schedule.php?search=' . urlencode($doctor['docname']) . '" class="book-btn">Book Appointment</a>';
+                    echo '</div>';
+                }
+                echo '</div>';
+            } else {
+                echo '<p style="color: #7f8c8d; font-style: italic;">No doctors found in the system.</p>';
+            }
         }
+        
+        echo '</div>';
+    } else {
+        echo '<div style="background-color: #f0f8ff; border: 1px solid #ccc; border-radius: 8px; padding: 20px; margin: 20px 0; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">';
+        echo '<h2 style="color: #2c3e50; margin-top: 0;">Common Symptoms</h2>';
+        echo '<p style="color: #555; margin-bottom: 15px;">Click on any symptom below to search for related conditions:</p>';
+        
+        // List of common symptoms
+        $common_symptoms = [
+            "Fever", "Headache", "Cough", "Sore Throat", "Runny Nose", 
+            "Fatigue", "Body Aches", "Nausea", "Vomiting", "Diarrhea",
+            "Chest Pain", "Shortness of Breath", "Dizziness", "Rash", "Allergies",
+            "Back Pain", "Joint Pain", "Insomnia", "Anxiety", "Depression"
+        ];
+        
+        echo '<div style="display: flex; flex-wrap: wrap; gap: 10px;">';
+        foreach ($common_symptoms as $symptom) {
+            echo '<a href="recommend.php?symptoms=' . urlencode($symptom) . '" style="text-decoration: none;">';
+            echo '<div style="background-color: #e6f7ff; padding: 10px 15px; border-radius: 20px; color: #2980b9; font-weight: 500; transition: all 0.3s ease;">';
+            echo $symptom;
+            echo '</div>';
+            echo '</a>';
+        }
+        echo '</div>';
+        
+        echo '<div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #ddd;">';
+        echo '<p style="color: #555;">Or enter your symptoms manually:</p>';
+        echo '<form method="POST" action="recommend.php" style="display: flex; gap: 10px;">';
+        echo '<input type="text" name="symptoms" id="symptoms" placeholder="Enter symptoms (comma-separated)" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">';
+        echo '<button type="submit" style="background-color: #3498db; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer;">Search</button>';
+        echo '</form>';
+        echo '</div>';
+        
+        echo '</div>';
     }
-    
-    echo '</div>';
-} else {
-    echo '<div style="background-color: #fff3f3; border: 1px solid #ffcccc; border-radius: 8px; padding: 20px; margin: 20px 0; color: #a94442;">';
-    echo "<p>No matching diseases found. Please consult a doctor for further advice.</p>";
-    echo '</div>';
 }
 
 $conn->close();
