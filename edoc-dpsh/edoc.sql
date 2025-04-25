@@ -596,7 +596,7 @@ INSERT INTO `symptoms` (`id`, `name`) VALUES
 (92, 'Tightness in chest'),
 (93, 'Coughing up blood'),
 (94, 'Memory loss'),
-(95, 'Trouble concentrating'),
+(95, 'Trouble concent'),
 (96, 'Hot flashes'),
 (97, 'Inability to sleep'),
 (98, 'Unexplained weight gain'),
@@ -811,3 +811,15 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+
+CREATE TABLE IF NOT EXISTS doctor_reviews (
+    review_id INT PRIMARY KEY AUTO_INCREMENT,
+    doctor_id INT NOT NULL,
+    patient_id INT NOT NULL,
+    rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    review_text TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (doctor_id) REFERENCES doctor(docid),
+    FOREIGN KEY (patient_id) REFERENCES patient(pid)
+); 

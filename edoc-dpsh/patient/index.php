@@ -14,7 +14,7 @@
             animation: transitionIn-Y-over 0.5s;
         }
         .filter-container{
-            animation: transitionIn-Y-bottom  0.5s;
+            animation: t\ransitionIn-Y-bottom  0.5s;
         }
         .sub-table,.anime{
             animation: transitionIn-Y-bottom 0.5s;
